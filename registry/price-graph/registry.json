@@ -1,0 +1,93 @@
+{
+  "name": "price-graph",
+  "description": "Real-time price chart with smooth animations, grid boxes, and plugin adapters",
+  "dependencies": {
+    "framer-motion": "^12.0.0"
+  },
+  "files": [
+    {
+      "path": "components/price-graph.tsx",
+      "type": "component",
+      "target": "components/price-graph/price-graph.tsx"
+    },
+    {
+      "path": "components/price-line.tsx",
+      "type": "component",
+      "target": "components/price-graph/price-line.tsx"
+    },
+    {
+      "path": "components/price-head.tsx",
+      "type": "component",
+      "target": "components/price-graph/price-head.tsx"
+    },
+    {
+      "path": "components/price-grid.tsx",
+      "type": "component",
+      "target": "components/price-graph/price-grid.tsx"
+    },
+    {
+      "path": "components/time-grid.tsx",
+      "type": "component",
+      "target": "components/price-graph/time-grid.tsx"
+    },
+    {
+      "path": "components/grid-boxes.tsx",
+      "type": "component",
+      "target": "components/price-graph/grid-boxes.tsx"
+    },
+    {
+      "path": "components/index.ts",
+      "type": "component",
+      "target": "components/price-graph/index.ts"
+    },
+    {
+      "path": "hooks/use-price-buffer.ts",
+      "type": "hook",
+      "target": "hooks/use-price-buffer.ts"
+    },
+    {
+      "path": "hooks/use-animation-time.ts",
+      "type": "hook",
+      "target": "hooks/use-animation-time.ts"
+    },
+    {
+      "path": "hooks/index.ts",
+      "type": "hook",
+      "target": "hooks/index.ts"
+    },
+    {
+      "path": "adapters/binance.ts",
+      "type": "adapter",
+      "target": "adapters/binance.ts"
+    },
+    {
+      "path": "adapters/types.ts",
+      "type": "adapter",
+      "target": "adapters/types.ts"
+    },
+    {
+      "path": "adapters/index.ts",
+      "type": "adapter",
+      "target": "adapters/index.ts"
+    },
+    {
+      "path": "lib/types.ts",
+      "type": "lib",
+      "target": "lib/price-graph-types.ts"
+    },
+    {
+      "path": "lib/index.ts",
+      "type": "lib",
+      "target": "lib/index.ts"
+    },
+    {
+      "path": "index.ts",
+      "type": "root",
+      "target": "components/price-graph.ts"
+    }
+  ],
+  "cssVariables": [
+    "--chart-1",
+    "--muted-foreground"
+  ]
+}

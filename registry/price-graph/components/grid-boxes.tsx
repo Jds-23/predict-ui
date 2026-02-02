@@ -11,6 +11,7 @@ interface GridBoxesProps {
   pixelsPerMs: number
   timeIntervalMs: number
   timeWindowMs: number
+  onBoxSelect?: (boxes: Set<string>) => void
 }
 
 interface BoxKey {
@@ -33,6 +34,7 @@ export function GridBoxes({
   pixelsPerMs,
   timeIntervalMs,
   timeWindowMs,
+  onBoxSelect,
 }: GridBoxesProps) {
   const [hoveredBox, setHoveredBox] = useState<string | null>(null)
   const [selectedBoxes, setSelectedBoxes] = useState<Set<string>>(new Set())
@@ -120,6 +122,7 @@ export function GridBoxes({
       } else {
         next.add(key)
       }
+      onBoxSelect?.(next)
       return next
     })
   }

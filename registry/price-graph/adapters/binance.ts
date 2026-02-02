@@ -1,9 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-
-interface PriceData {
-  price: number
-  timestamp: number
-}
+import type { PriceAdapter } from './types'
+import type { PricePoint } from '../lib/types'
 
 interface UseBinancePriceOptions {
   symbol?: string
@@ -13,8 +10,8 @@ interface UseBinancePriceOptions {
 export function useBinancePrice({
   symbol = 'btcusdt',
   throttleMs = 250,
-}: UseBinancePriceOptions = {}) {
-  const [priceData, setPriceData] = useState<PriceData | null>(null)
+}: UseBinancePriceOptions = {}): PriceAdapter {
+  const [priceData, setPriceData] = useState<PricePoint | null>(null)
   const [isConnected, setIsConnected] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -43,7 +40,7 @@ export function useBinancePrice({
         const data = JSON.parse(event.data)
         setPriceData({
           price: parseFloat(data.p),
-          timestamp: data.T,
+          time: data.T,
         })
       } catch {
         // ignore parse errors
@@ -57,7 +54,6 @@ export function useBinancePrice({
 
     ws.onclose = () => {
       setIsConnected(false)
-      // Reconnect after 2s
       reconnectTimeoutRef.current = setTimeout(connect, 2000)
     }
 

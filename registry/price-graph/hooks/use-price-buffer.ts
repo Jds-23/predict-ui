@@ -1,9 +1,5 @@
 import { useRef, useMemo } from 'react'
-
-export interface PricePoint {
-  price: number
-  time: number
-}
+import type { PricePoint } from '../lib/types'
 
 interface UsePriceBufferOptions {
   maxPoints?: number

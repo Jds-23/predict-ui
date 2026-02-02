@@ -1,41 +1,49 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { useBinancePrice } from '../../hooks/useBinancePrice'
-import { usePriceBuffer, type PricePoint } from '../../hooks/usePriceBuffer'
-import { useAnimationTime } from '../../hooks/useAnimationTime'
-import { PriceLine } from './PriceLine'
-import { PriceHead } from './PriceHead'
-import { TimeGrid } from './TimeGrid'
-import { PriceGrid } from './PriceGrid'
-import { GridBoxes } from './GridBoxes'
+import type { PriceAdapter } from '../adapters/types'
+import type { PricePoint } from '../lib/types'
+import { usePriceBuffer } from '../hooks/use-price-buffer'
+import { useAnimationTime } from '../hooks/use-animation-time'
+import { PriceLine } from './price-line'
+import { PriceHead } from './price-head'
+import { TimeGrid } from './time-grid'
+import { PriceGrid } from './price-grid'
+import { GridBoxes } from './grid-boxes'
 
 interface PriceGraphProps {
-  symbol?: string
+  adapter?: PriceAdapter
+  priceData?: PricePoint | null
+  isConnected?: boolean
   maxPoints?: number
-  throttleMs?: number
   className?: string
   timeWindowSeconds?: number
-  priceStep?: number // fixed price grid interval (default $200)
-  smoothingMs?: number // exponential smoothing time constant (default 500ms)
+  priceStep?: number
+  smoothingMs?: number
   onPriceLineClick?: (price: number) => void
+  onBoxSelect?: (boxes: Set<string>) => void
 }
 
 export function PriceGraph({
-  symbol = 'btcusdt',
+  adapter,
+  priceData: manualPriceData,
+  isConnected: manualIsConnected,
   maxPoints = 100,
-  throttleMs = 250,
   className = '',
   timeWindowSeconds = 25,
   priceStep = 200,
   smoothingMs = 500,
   onPriceLineClick,
+  onBoxSelect,
 }: PriceGraphProps) {
+  // Use adapter if provided, otherwise use manual props
+  const priceData = adapter?.priceData ?? manualPriceData ?? null
+  const isConnected = adapter?.isConnected ?? manualIsConnected ?? false
+
   const [points, setPoints] = useState<PricePoint[]>([])
   const [dimensions, setDimensions] = useState({ width: 800, height: 300 })
   const containerRef = useRef<HTMLDivElement>(null)
   const smoothedPriceRef = useRef<number | null>(null)
   const lastTimeRef = useRef<number>(Date.now())
 
-  const { priceData, isConnected } = useBinancePrice({ symbol, throttleMs })
   const buffer = usePriceBuffer({ maxPoints })
   const currentTime = useAnimationTime()
 
@@ -62,7 +70,7 @@ export function PriceGraph({
   // Add new price points to buffer
   useEffect(() => {
     if (priceData) {
-      const newPoints = buffer.addPoint(priceData.price, priceData.timestamp)
+      const newPoints = buffer.addPoint(priceData.price, priceData.time)
       setPoints(newPoints)
     }
   }, [priceData, buffer])
@@ -84,10 +92,10 @@ export function PriceGraph({
     }
 
     return smoothedPriceRef.current
-  }, [points, smoothingMs, currentTime]) // currentTime triggers update each frame
+  }, [points, smoothingMs, currentTime])
 
   // Visible price range based on step count (show ~5 steps above/below center)
-  const visiblePriceRange = priceStep * 10 // $2000 total range for $200 step
+  const visiblePriceRange = priceStep * 10
 
   // Filter points to only those in visible time window
   const visiblePoints = useMemo(() => {
@@ -141,6 +149,7 @@ export function PriceGraph({
             pixelsPerMs={pixelsPerMs}
             timeIntervalMs={5000}
             timeWindowMs={timeWindowMs}
+            onBoxSelect={onBoxSelect}
           />
         )}
 

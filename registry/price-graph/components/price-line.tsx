@@ -1,4 +1,4 @@
-import type { PricePoint } from '../../hooks/usePriceBuffer'
+import type { PricePoint } from '../lib/types'
 
 interface PriceLineProps {
   points: PricePoint[]
