@@ -1,14 +1,18 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useBinancePrice } from '../../hooks/useBinancePrice'
 import { usePriceBuffer, type PricePoint } from '../../hooks/usePriceBuffer'
+import { useAnimationTime } from '../../hooks/useAnimationTime'
 import { PriceLine } from './PriceLine'
 import { PriceHead } from './PriceHead'
+import { TimeGrid } from './TimeGrid'
+import { PriceGrid } from './PriceGrid'
 
 interface PriceGraphProps {
   symbol?: string
   maxPoints?: number
   throttleMs?: number
   className?: string
+  timeWindowSeconds?: number
 }
 
 export function PriceGraph({
@@ -16,6 +20,7 @@ export function PriceGraph({
   maxPoints = 100,
   throttleMs = 250,
   className = '',
+  timeWindowSeconds = 25,
 }: PriceGraphProps) {
   const [points, setPoints] = useState<PricePoint[]>([])
   const [dimensions, setDimensions] = useState({ width: 800, height: 300 })
@@ -23,6 +28,13 @@ export function PriceGraph({
 
   const { priceData, isConnected } = useBinancePrice({ symbol, throttleMs })
   const buffer = usePriceBuffer({ maxPoints })
+  const currentTime = useAnimationTime()
+
+  const timeWindowMs = timeWindowSeconds * 1000
+  const pixelsPerMs = dimensions.width / timeWindowMs
+
+  const centerX = dimensions.width / 2
+  const paddingY = 0.05 * dimensions.height
 
   // Update dimensions on resize
   useEffect(() => {
@@ -46,8 +58,8 @@ export function PriceGraph({
     }
   }, [priceData, buffer])
 
-  // Calculate price range with padding
-  const { minPrice, maxPrice } = useCallback(() => {
+  // Calculate price range with padding - memoized to avoid recalc every frame
+  const { minPrice, maxPrice } = useMemo(() => {
     if (points.length === 0) return { minPrice: 0, maxPrice: 100 }
     const prices = points.map((p) => p.price)
     const min = Math.min(...prices)
@@ -55,23 +67,23 @@ export function PriceGraph({
     const range = max - min || 1
     const padding = range * 0.1
     return { minPrice: min - padding, maxPrice: max + padding }
-  }, [points])()
+  }, [points])
 
-  // Calculate head position (always at center horizontally)
-  const getHeadPosition = () => {
-    if (points.length === 0) return { x: dimensions.width / 2, y: dimensions.height / 2 }
+  // Filter points to only those in visible time window
+  const visiblePoints = useMemo(() => {
+    const oldestVisibleTime = currentTime - timeWindowMs / 2
+    return points.filter((p) => p.time >= oldestVisibleTime)
+  }, [points, currentTime, timeWindowMs])
+
+  // Calculate head Y position (X is always center)
+  const headY = useMemo(() => {
+    if (points.length === 0) return dimensions.height / 2
 
     const lastPoint = points[points.length - 1]
     const priceRange = maxPrice - minPrice || 1
-    const paddingY = 0.05 * dimensions.height
 
-    return {
-      x: dimensions.width / 2,
-      y: paddingY + ((maxPrice - lastPoint.price) / priceRange) * (dimensions.height - 2 * paddingY),
-    }
-  }
-
-  const headPos = getHeadPosition()
+    return paddingY + ((maxPrice - lastPoint.price) / priceRange) * (dimensions.height - 2 * paddingY)
+  }, [points, maxPrice, minPrice, dimensions.height, paddingY])
 
   return (
     <div
@@ -95,48 +107,39 @@ export function PriceGraph({
         preserveAspectRatio="none"
         className="overflow-visible"
       >
-        {/* Grid lines (subtle) */}
-        <defs>
-          <pattern
-            id="grid"
-            width={dimensions.width / 10}
-            height={dimensions.height / 5}
-            patternUnits="userSpaceOnUse"
-          >
-            <path
-              d={`M ${dimensions.width / 10} 0 L 0 0 0 ${dimensions.height / 5}`}
-              fill="none"
-              stroke="var(--border)"
-              strokeWidth={0.5}
-              opacity={0.3}
-            />
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#grid)" />
-
-        {/* Center line (vertical guide where head sits) */}
-        <line
-          x1={dimensions.width / 2}
-          y1={0}
-          x2={dimensions.width / 2}
-          y2={dimensions.height}
-          stroke="var(--border)"
-          strokeWidth={1}
-          strokeDasharray="4 4"
-          opacity={0.5}
-        />
-
-        {/* Price line */}
-        <PriceLine
-          points={points}
+        {/* Price grid - static horizontal lines */}
+        <PriceGrid
           width={dimensions.width}
           height={dimensions.height}
           minPrice={minPrice}
           maxPrice={maxPrice}
+          paddingY={paddingY}
         />
 
-        {/* Head dot (current price) */}
-        {points.length > 0 && <PriceHead x={headPos.x} y={headPos.y} />}
+        {/* Time grid - moves with time */}
+        <TimeGrid
+          width={dimensions.width}
+          height={dimensions.height}
+          currentTime={currentTime}
+          pixelsPerMs={pixelsPerMs}
+          timeWindowMs={timeWindowMs}
+          intervalMs={5000}
+        />
+
+        {/* Price line - coordinates calculated from time */}
+        <PriceLine
+          points={visiblePoints}
+          currentTime={currentTime}
+          pixelsPerMs={pixelsPerMs}
+          centerX={centerX}
+          height={dimensions.height}
+          minPrice={minPrice}
+          maxPrice={maxPrice}
+          paddingY={paddingY}
+        />
+
+        {/* Head dot (current price) - always at center X */}
+        {points.length > 0 && <PriceHead x={centerX} y={headY} />}
       </svg>
     </div>
   )

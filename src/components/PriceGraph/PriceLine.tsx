@@ -1,12 +1,14 @@
-import { useRef, useEffect, useState } from 'react'
 import type { PricePoint } from '../../hooks/usePriceBuffer'
 
 interface PriceLineProps {
   points: PricePoint[]
-  width: number
+  currentTime: number
+  pixelsPerMs: number
+  centerX: number
   height: number
   minPrice: number
   maxPrice: number
+  paddingY: number
 }
 
 interface Coord {
@@ -38,82 +40,39 @@ function generatePath(coords: Coord[]): string {
   return path
 }
 
-export function PriceLine({ points, width, height, minPrice, maxPrice }: PriceLineProps) {
-  const [animatedCoords, setAnimatedCoords] = useState<Coord[]>([])
-  const prevCoordsRef = useRef<Coord[]>([])
-  const animationRef = useRef<number>(undefined)
-
+export function PriceLine({
+  points,
+  currentTime,
+  pixelsPerMs,
+  centerX,
+  height,
+  minPrice,
+  maxPrice,
+  paddingY,
+}: PriceLineProps) {
   const priceRange = maxPrice - minPrice || 1
-  const padding = 0.05 * height
 
-  // Calculate target coordinates
-  const targetCoords: Coord[] = points.map((p, i) => {
-    const totalPoints = points.length
-    // Position so that the last point (head) is at center
-    const x = width / 2 + (i - (totalPoints - 1)) * (width / (totalPoints - 1 || 1))
-    const y = padding + ((maxPrice - p.price) / priceRange) * (height - 2 * padding)
+  // Calculate coordinates based on time (not array index)
+  const coords: Coord[] = points.map((p) => {
+    // X position: relative to currentTime, centered at centerX
+    const relativeMs = p.time - currentTime
+    const x = centerX + relativeMs * pixelsPerMs
+
+    // Y position: price mapped to height
+    const y = paddingY + ((maxPrice - p.price) / priceRange) * (height - 2 * paddingY)
+
     return { x, y }
   })
 
-  // Animate coordinates smoothly
-  useEffect(() => {
-    if (targetCoords.length === 0) return
-
-    const prevCoords = prevCoordsRef.current
-    const startTime = performance.now()
-    const duration = 200 // ms
-
-    // If first render or length changed significantly, just set directly
-    if (prevCoords.length === 0 || Math.abs(prevCoords.length - targetCoords.length) > 1) {
-      setAnimatedCoords(targetCoords)
-      prevCoordsRef.current = targetCoords
-      return
+  // Extend line to center (head position) using last point's Y
+  if (coords.length > 0) {
+    const lastCoord = coords[coords.length - 1]
+    if (lastCoord.x < centerX) {
+      coords.push({ x: centerX, y: lastCoord.y })
     }
+  }
 
-    // Cancel any ongoing animation
-    if (animationRef.current) {
-      cancelAnimationFrame(animationRef.current)
-    }
-
-    const animate = (now: number) => {
-      const elapsed = now - startTime
-      const progress = Math.min(elapsed / duration, 1)
-      // Ease-out cubic
-      const eased = 1 - Math.pow(1 - progress, 3)
-
-      // Interpolate between prev and target coords
-      // If counts differ, interpolate what we can and fill rest from target
-      const maxLen = Math.max(prevCoords.length, targetCoords.length)
-      const interpolated: Coord[] = []
-
-      for (let i = 0; i < maxLen; i++) {
-        const prev = prevCoords[i] || targetCoords[i]
-        const target = targetCoords[i] || prevCoords[i]
-        interpolated.push({
-          x: prev.x + (target.x - prev.x) * eased,
-          y: prev.y + (target.y - prev.y) * eased,
-        })
-      }
-
-      setAnimatedCoords(interpolated)
-
-      if (progress < 1) {
-        animationRef.current = requestAnimationFrame(animate)
-      } else {
-        prevCoordsRef.current = targetCoords
-      }
-    }
-
-    animationRef.current = requestAnimationFrame(animate)
-
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current)
-      }
-    }
-  }, [points, width, height, minPrice, maxPrice])
-
-  const path = generatePath(animatedCoords)
+  const path = generatePath(coords)
 
   if (!path) return null
 
@@ -125,9 +84,6 @@ export function PriceLine({ points, width, height, minPrice, maxPrice }: PriceLi
       strokeWidth={2}
       strokeLinecap="round"
       strokeLinejoin="round"
-      style={{
-        willChange: 'auto',
-      }}
     />
   )
 }
