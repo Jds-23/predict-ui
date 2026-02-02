@@ -13,6 +13,9 @@ interface PriceGraphProps {
   throttleMs?: number
   className?: string
   timeWindowSeconds?: number
+  priceStep?: number // fixed price grid interval (default $200)
+  smoothingMs?: number // exponential smoothing time constant (default 500ms)
+  onPriceLineClick?: (price: number) => void
 }
 
 export function PriceGraph({
@@ -21,10 +24,15 @@ export function PriceGraph({
   throttleMs = 250,
   className = '',
   timeWindowSeconds = 25,
+  priceStep = 200,
+  smoothingMs = 500,
+  onPriceLineClick,
 }: PriceGraphProps) {
   const [points, setPoints] = useState<PricePoint[]>([])
   const [dimensions, setDimensions] = useState({ width: 800, height: 300 })
   const containerRef = useRef<HTMLDivElement>(null)
+  const smoothedPriceRef = useRef<number | null>(null)
+  const lastTimeRef = useRef<number>(Date.now())
 
   const { priceData, isConnected } = useBinancePrice({ symbol, throttleMs })
   const buffer = usePriceBuffer({ maxPoints })
@@ -58,16 +66,27 @@ export function PriceGraph({
     }
   }, [priceData, buffer])
 
-  // Calculate price range with padding - memoized to avoid recalc every frame
-  const { minPrice, maxPrice } = useMemo(() => {
-    if (points.length === 0) return { minPrice: 0, maxPrice: 100 }
-    const prices = points.map((p) => p.price)
-    const min = Math.min(...prices)
-    const max = Math.max(...prices)
-    const range = max - min || 1
-    const padding = range * 0.1
-    return { minPrice: min - padding, maxPrice: max + padding }
-  }, [points])
+  // Exponential smoothing for center price - follows latest price with delay
+  const smoothedCenterPrice = useMemo(() => {
+    if (points.length === 0) return null
+
+    const latestPrice = points[points.length - 1].price
+    const now = Date.now()
+    const deltaMs = now - lastTimeRef.current
+    lastTimeRef.current = now
+
+    if (smoothedPriceRef.current === null) {
+      smoothedPriceRef.current = latestPrice
+    } else {
+      const alpha = 1 - Math.exp(-deltaMs / smoothingMs)
+      smoothedPriceRef.current += (latestPrice - smoothedPriceRef.current) * alpha
+    }
+
+    return smoothedPriceRef.current
+  }, [points, smoothingMs, currentTime]) // currentTime triggers update each frame
+
+  // Visible price range based on step count (show ~5 steps above/below center)
+  const visiblePriceRange = priceStep * 10 // $2000 total range for $200 step
 
   // Filter points to only those in visible time window
   const visiblePoints = useMemo(() => {
@@ -75,15 +94,16 @@ export function PriceGraph({
     return points.filter((p) => p.time >= oldestVisibleTime)
   }, [points, currentTime, timeWindowMs])
 
-  // Calculate head Y position (X is always center)
+  // Calculate head Y position relative to smoothed center
   const headY = useMemo(() => {
-    if (points.length === 0) return dimensions.height / 2
+    if (points.length === 0 || smoothedCenterPrice === null) return dimensions.height / 2
 
     const lastPoint = points[points.length - 1]
-    const priceRange = maxPrice - minPrice || 1
+    const centerY = dimensions.height / 2
+    const pixelsPerDollar = (dimensions.height - 2 * paddingY) / visiblePriceRange
 
-    return paddingY + ((maxPrice - lastPoint.price) / priceRange) * (dimensions.height - 2 * paddingY)
-  }, [points, maxPrice, minPrice, dimensions.height, paddingY])
+    return centerY + (smoothedCenterPrice - lastPoint.price) * pixelsPerDollar
+  }, [points, smoothedCenterPrice, dimensions.height, paddingY, visiblePriceRange])
 
   return (
     <div
@@ -107,14 +127,18 @@ export function PriceGraph({
         preserveAspectRatio="none"
         className="overflow-visible"
       >
-        {/* Price grid - static horizontal lines */}
-        <PriceGrid
-          width={dimensions.width}
-          height={dimensions.height}
-          minPrice={minPrice}
-          maxPrice={maxPrice}
-          paddingY={paddingY}
-        />
+        {/* Price grid - moves with smoothed center price */}
+        {smoothedCenterPrice !== null && (
+          <PriceGrid
+            width={dimensions.width}
+            height={dimensions.height}
+            centerPrice={smoothedCenterPrice}
+            priceStep={priceStep}
+            visiblePriceRange={visiblePriceRange}
+            paddingY={paddingY}
+            onLineClick={onPriceLineClick}
+          />
+        )}
 
         {/* Time grid - moves with time */}
         <TimeGrid
@@ -127,16 +151,18 @@ export function PriceGraph({
         />
 
         {/* Price line - coordinates calculated from time */}
-        <PriceLine
-          points={visiblePoints}
-          currentTime={currentTime}
-          pixelsPerMs={pixelsPerMs}
-          centerX={centerX}
-          height={dimensions.height}
-          minPrice={minPrice}
-          maxPrice={maxPrice}
-          paddingY={paddingY}
-        />
+        {smoothedCenterPrice !== null && (
+          <PriceLine
+            points={visiblePoints}
+            currentTime={currentTime}
+            pixelsPerMs={pixelsPerMs}
+            centerX={centerX}
+            height={dimensions.height}
+            centerPrice={smoothedCenterPrice}
+            visiblePriceRange={visiblePriceRange}
+            paddingY={paddingY}
+          />
+        )}
 
         {/* Head dot (current price) - always at center X */}
         {points.length > 0 && <PriceHead x={centerX} y={headY} />}

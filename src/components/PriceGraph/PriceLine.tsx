@@ -6,8 +6,8 @@ interface PriceLineProps {
   pixelsPerMs: number
   centerX: number
   height: number
-  minPrice: number
-  maxPrice: number
+  centerPrice: number
+  visiblePriceRange: number
   paddingY: number
 }
 
@@ -46,20 +46,21 @@ export function PriceLine({
   pixelsPerMs,
   centerX,
   height,
-  minPrice,
-  maxPrice,
+  centerPrice,
+  visiblePriceRange,
   paddingY,
 }: PriceLineProps) {
-  const priceRange = maxPrice - minPrice || 1
+  const centerY = height / 2
+  const pixelsPerDollar = (height - 2 * paddingY) / visiblePriceRange
 
-  // Calculate coordinates based on time (not array index)
+  // Calculate coordinates based on time and price relative to smoothed center
   const coords: Coord[] = points.map((p) => {
     // X position: relative to currentTime, centered at centerX
     const relativeMs = p.time - currentTime
     const x = centerX + relativeMs * pixelsPerMs
 
-    // Y position: price mapped to height
-    const y = paddingY + ((maxPrice - p.price) / priceRange) * (height - 2 * paddingY)
+    // Y position: price relative to smoothed center
+    const y = centerY + (centerPrice - p.price) * pixelsPerDollar
 
     return { x, y }
   })

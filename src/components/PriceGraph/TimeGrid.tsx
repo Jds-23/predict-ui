@@ -48,9 +48,9 @@ export function TimeGrid({
             y1={0}
             x2={x}
             y2={height}
-            stroke="var(--border)"
+            stroke="black"
             strokeWidth={relativeS === 0 ? 1 : 0.5}
-            opacity={relativeS === 0 ? 0.5 : 0.25}
+            opacity={relativeS === 0 ? 0.5 : 0.3}
             strokeDasharray={relativeS === 0 ? '4 4' : undefined}
           />
           <text

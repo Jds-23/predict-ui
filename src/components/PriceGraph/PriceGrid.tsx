@@ -1,32 +1,11 @@
 interface PriceGridProps {
   width: number
   height: number
-  minPrice: number
-  maxPrice: number
+  centerPrice: number
+  priceStep: number
+  visiblePriceRange: number
   paddingY: number
-}
-
-/**
- * Calculate nice round numbers for grid lines
- */
-function calculateNiceStep(min: number, max: number, targetLines: number = 5): number {
-  const range = max - min
-  const roughStep = range / targetLines
-
-  // Find order of magnitude
-  const magnitude = Math.pow(10, Math.floor(Math.log10(roughStep)))
-
-  // Normalize to 1-10 range
-  const normalized = roughStep / magnitude
-
-  // Pick a nice step: 1, 2, 5, or 10
-  let niceNormalized: number
-  if (normalized < 1.5) niceNormalized = 1
-  else if (normalized < 3.5) niceNormalized = 2
-  else if (normalized < 7.5) niceNormalized = 5
-  else niceNormalized = 10
-
-  return niceNormalized * magnitude
+  onLineClick?: (price: number) => void
 }
 
 function formatPrice(price: number): string {
@@ -36,35 +15,62 @@ function formatPrice(price: number): string {
   return price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
-export function PriceGrid({ width, height, minPrice, maxPrice, paddingY }: PriceGridProps) {
-  const priceRange = maxPrice - minPrice || 1
-  const step = calculateNiceStep(minPrice, maxPrice, 5)
+export function PriceGrid({
+  width,
+  height,
+  centerPrice,
+  priceStep,
+  visiblePriceRange,
+  paddingY,
+  onLineClick,
+}: PriceGridProps) {
+  const centerY = height / 2
+  const pixelsPerDollar = (height - 2 * paddingY) / visiblePriceRange
 
-  // Generate horizontal lines at nice price intervals
+  // Generate lines at fixed intervals relative to smoothed center
   const lines: { y: number; price: number }[] = []
 
-  const startPrice = Math.ceil(minPrice / step) * step
+  // Find the nearest round price to center
+  const nearestRoundPrice = Math.round(centerPrice / priceStep) * priceStep
 
-  for (let p = startPrice; p <= maxPrice; p += step) {
-    const y = paddingY + ((maxPrice - p) / priceRange) * (height - 2 * paddingY)
-    // Only include if within visible bounds
-    if (y >= paddingY - 10 && y <= height - paddingY + 10) {
-      lines.push({ y, price: p })
+  // Generate lines above and below center
+  const numLines = Math.ceil(visiblePriceRange / priceStep / 2) + 1
+
+  for (let i = -numLines; i <= numLines; i++) {
+    const price = nearestRoundPrice + i * priceStep
+    const y = centerY + (centerPrice - price) * pixelsPerDollar
+
+    // Only include if within visible bounds (with some margin)
+    if (y >= -20 && y <= height + 20) {
+      lines.push({ y, price })
     }
   }
 
   return (
     <g className="price-grid">
       {lines.map(({ y, price }) => (
-        <g key={price}>
+        <g
+          key={price}
+          onClick={() => onLineClick?.(price)}
+          style={{ cursor: onLineClick ? 'pointer' : 'default' }}
+        >
+          {/* Invisible wider hit area for easier clicking */}
           <line
             x1={0}
             y1={y}
             x2={width}
             y2={y}
-            stroke="var(--border)"
+            stroke="transparent"
+            strokeWidth={16}
+          />
+          <line
+            x1={0}
+            y1={y}
+            x2={width}
+            y2={y}
+            stroke="black"
             strokeWidth={0.5}
-            opacity={0.25}
+            opacity={0.3}
           />
           <text
             x={6}
