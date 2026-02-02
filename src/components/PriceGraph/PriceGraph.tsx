@@ -6,6 +6,7 @@ import { PriceLine } from './PriceLine'
 import { PriceHead } from './PriceHead'
 import { TimeGrid } from './TimeGrid'
 import { PriceGrid } from './PriceGrid'
+import { GridBoxes } from './GridBoxes'
 
 interface PriceGraphProps {
   symbol?: string
@@ -127,6 +128,22 @@ export function PriceGraph({
         preserveAspectRatio="none"
         className="overflow-visible"
       >
+        {/* Clickable grid boxes - render first so lines appear on top */}
+        {smoothedCenterPrice !== null && (
+          <GridBoxes
+            width={dimensions.width}
+            height={dimensions.height}
+            centerPrice={smoothedCenterPrice}
+            priceStep={priceStep}
+            visiblePriceRange={visiblePriceRange}
+            paddingY={paddingY}
+            currentTime={currentTime}
+            pixelsPerMs={pixelsPerMs}
+            timeIntervalMs={5000}
+            timeWindowMs={timeWindowMs}
+          />
+        )}
+
         {/* Price grid - moves with smoothed center price */}
         {smoothedCenterPrice !== null && (
           <PriceGrid
