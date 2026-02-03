@@ -1,5 +1,5 @@
-import { ChevronUp, Wallet } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { ChevronUp, RotateCcw, Wallet } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 interface TradingPair {
 	value: string;
@@ -13,6 +13,7 @@ interface BottomBarProps {
 	amount: string;
 	onAmountChange: (amount: string) => void;
 	walletBalance: number;
+	onReset?: () => void;
 }
 
 export function BottomBar({
@@ -22,6 +23,7 @@ export function BottomBar({
 	amount,
 	onAmountChange,
 	walletBalance,
+	onReset,
 }: BottomBarProps) {
 	const [dropdownOpen, setDropdownOpen] = useState(false);
 	const dropdownRef = useRef<HTMLDivElement>(null);
@@ -46,7 +48,14 @@ export function BottomBar({
 	const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const val = e.target.value;
 		if (val === "" || /^\d*\.?\d*$/.test(val)) {
-			onAmountChange(val);
+			const numVal = Number.parseFloat(val);
+			if (val === "" || Number.isNaN(numVal)) {
+				onAmountChange(val);
+			} else if (numVal > walletBalance) {
+				onAmountChange(String(walletBalance));
+			} else {
+				onAmountChange(val);
+			}
 		}
 	};
 
@@ -100,6 +109,18 @@ export function BottomBar({
 				<Wallet size={16} />
 				<span>${walletBalance.toFixed(2)}</span>
 			</div>
+
+			{/* Reset Button */}
+			{onReset && (
+				<button
+					type="button"
+					onClick={onReset}
+					className="flex items-center gap-1 px-2 py-1.5 bg-gray-700 hover:bg-gray-600 rounded transition-colors text-sm"
+					title="Reset wallet & stakes"
+				>
+					<RotateCcw size={14} />
+				</button>
+			)}
 		</div>
 	);
 }
