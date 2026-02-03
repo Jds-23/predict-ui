@@ -11,7 +11,7 @@ export const Route = createFileRoute("/")({
 	component: App,
 });
 
-const PRICE_STEP = 200;
+const PRICE_STEP = 50;
 
 const getBoxFill = (
 	box: BoxData,

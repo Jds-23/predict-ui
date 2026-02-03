@@ -17,7 +17,9 @@ interface PriceGraphProps {
   className?: string
   timeWindowSeconds?: number
   priceStep?: number
+  timeIntervalMs?: number
   smoothingMs?: number
+  squareBoxes?: boolean
   renderBoxes?: (boxes: BoxData[]) => ReactNode
 }
 
@@ -27,9 +29,11 @@ export function PriceGraph({
   isConnected: manualIsConnected,
   maxPoints = 100,
   className = "",
-  timeWindowSeconds = 25,
-  priceStep = 200,
+  timeWindowSeconds = 50,
+  priceStep = 50,
+  timeIntervalMs = 10000,
   smoothingMs = 500,
+  squareBoxes = true,
   renderBoxes,
 }: PriceGraphProps) {
   // Use adapter if provided, otherwise use manual props
@@ -45,12 +49,21 @@ export function PriceGraph({
   const buffer = usePriceBuffer({ maxPoints })
   const currentTime = useAnimationTime()
 
-  const timeWindowMs = timeWindowSeconds * 1000
-  const pixelsPerMs = dimensions.width / timeWindowMs
-
   const centerX = dimensions.width / 2
   const paddingY = 0.05 * dimensions.height
-  const visiblePriceRange = priceStep * 10
+  const priceRows = 10
+  const visiblePriceRange = priceStep * priceRows
+
+  // For square boxes: boxWidth = boxHeight
+  // boxHeight = effectiveHeight / priceRows
+  // boxWidth = timeIntervalMs * pixelsPerMs = timeIntervalMs * (width / timeWindowMs)
+  // Solving for timeWindowMs: timeWindowMs = timeIntervalMs * width / boxHeight
+  const effectiveHeight = dimensions.height - 2 * paddingY
+  const boxHeightPx = effectiveHeight / priceRows
+  const timeWindowMs = squareBoxes
+    ? (timeIntervalMs * dimensions.width) / boxHeightPx
+    : timeWindowSeconds * 1000
+  const pixelsPerMs = dimensions.width / timeWindowMs
 
   // Update dimensions on resize
   useEffect(() => {
@@ -120,7 +133,7 @@ export function PriceGraph({
     paddingY,
     currentTime,
     pixelsPerMs,
-    timeIntervalMs: 5000,
+    timeIntervalMs,
     timeWindowMs,
   })
 
@@ -165,7 +178,7 @@ export function PriceGraph({
           currentTime={currentTime}
           pixelsPerMs={pixelsPerMs}
           timeWindowMs={timeWindowMs}
-          intervalMs={5000}
+          intervalMs={timeIntervalMs}
         />
 
         {/* Price line - coordinates calculated from time */}
