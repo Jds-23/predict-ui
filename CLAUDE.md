@@ -5,17 +5,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-npm run dev          # dev server on port 3000
-npm run build        # production build (vite + tsc)
-npm run test         # run vitest
-npm run lint         # biome lint
-npm run format       # biome format
-npm run check        # biome check (lint + format)
+bun dev              # dev server on port 3000
+bun run build        # production build (vite + tsc)
+bun test             # run vitest
+bun lint             # biome lint
+bun format           # biome format
+bun check            # biome check (lint + format)
 ```
 
 Add shadcn components:
 ```bash
-pnpm dlx shadcn@latest add <component>
+bunx shadcn@latest add <component>
 ```
 
 ## Architecture
@@ -33,7 +33,7 @@ pnpm dlx shadcn@latest add <component>
 - `lib/types.ts` - shared types
 - `registry.json` - component manifest
 
-CLI: `node scripts/add.ts price-graph` copies files to user paths
+CLI: `bun scripts/add.ts price-graph` copies files to user paths
 
 ### PriceGraph
 
