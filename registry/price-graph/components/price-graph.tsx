@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, type ReactNode } from 'react'
 import type { PriceAdapter } from '../adapters/types'
-import type { PricePoint } from '../lib/types'
+import type { PricePoint, BoxData } from '../lib/types'
 import { usePriceBuffer } from '../hooks/use-price-buffer'
 import { useAnimationTime } from '../hooks/use-animation-time'
 import { PriceLine } from './price-line'
@@ -18,9 +18,21 @@ interface PriceGraphProps {
   timeWindowSeconds?: number
   priceStep?: number
   smoothingMs?: number
-  selectedBoxes?: Set<string>
-  onBoxClick?: (boxKey: string) => void
+  renderBoxes?: (boxes: BoxData[]) => ReactNode
 }
+
+const defaultRenderBoxes = (boxes: BoxData[]): ReactNode =>
+  boxes.map((box) => (
+    <rect
+      key={box.key}
+      x={box.x}
+      y={box.y}
+      width={box.width}
+      height={box.height}
+      fill="transparent"
+      stroke="transparent"
+    />
+  ))
 
 export function PriceGraph({
   adapter,
@@ -31,8 +43,7 @@ export function PriceGraph({
   timeWindowSeconds = 25,
   priceStep = 200,
   smoothingMs = 500,
-  selectedBoxes,
-  onBoxClick,
+  renderBoxes = defaultRenderBoxes,
 }: PriceGraphProps) {
   // Use adapter if provided, otherwise use manual props
   const priceData = adapter?.priceData ?? manualPriceData ?? null
@@ -149,9 +160,9 @@ export function PriceGraph({
             pixelsPerMs={pixelsPerMs}
             timeIntervalMs={5000}
             timeWindowMs={timeWindowMs}
-            selectedBoxes={selectedBoxes}
-            onBoxClick={onBoxClick}
-          />
+          >
+            {renderBoxes}
+          </GridBoxes>
         )}
 
         {/* Price grid - moves with smoothed center price */}

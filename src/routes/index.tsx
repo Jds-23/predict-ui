@@ -1,33 +1,57 @@
 import { useState } from "react"
 import { createFileRoute } from "@tanstack/react-router"
-import { PriceGraph } from "../components/PriceGraph"
+import { PriceGraph, type BoxData } from "../../registry/price-graph"
 import { useBinancePrice } from "../../registry/price-graph"
 
 export const Route = createFileRoute("/")({
-  component: App,
+	component: App,
 })
 
 function App() {
-  const adapter = useBinancePrice({ symbol: "btcusdt", throttleMs: 250 })
-  const [selectedBoxes, setSelectedBoxes] = useState<Set<string>>(new Set())
+	const adapter = useBinancePrice({ symbol: "btcusdt", throttleMs: 250 })
+	const [selectedBoxes, setSelectedBoxes] = useState<Set<string>>(new Set())
+	const [hoveredBox, setHoveredBox] = useState<string | null>(null)
 
-  const handleBoxClick = (boxKey: string) => {
-    setSelectedBoxes((prev) => {
-      const next = new Set(prev)
-      next.has(boxKey) ? next.delete(boxKey) : next.add(boxKey)
-      return next
-    })
-    console.log("Clicked box:", boxKey)
-  }
+	const toggleBox = (key: string) => {
+		setSelectedBoxes((prev) => {
+			const next = new Set(prev)
+			next.has(key) ? next.delete(key) : next.add(key)
+			return next
+		})
+		console.log("Clicked box:", key)
+	}
 
-  return (
-    <div className="h-screen w-screen bg-background overflow-hidden">
-      <PriceGraph
-        adapter={adapter}
-        maxPoints={100}
-        selectedBoxes={selectedBoxes}
-        onBoxClick={handleBoxClick}
-      />
-    </div>
-  )
+	const renderBoxes = (boxes: BoxData[]) =>
+		boxes.map((box) => {
+			const isSelected = selectedBoxes.has(box.key)
+			const isHovered = hoveredBox === box.key
+
+			return (
+				<rect
+					key={box.key}
+					x={box.x}
+					y={box.y}
+					width={box.width}
+					height={box.height}
+					fill={
+						isSelected
+							? "rgba(59, 130, 246, 0.3)"
+							: isHovered
+								? "rgba(59, 130, 246, 0.15)"
+								: "transparent"
+					}
+					stroke="transparent"
+					style={{ cursor: "pointer" }}
+					onMouseEnter={() => setHoveredBox(box.key)}
+					onMouseLeave={() => setHoveredBox(null)}
+					onClick={() => toggleBox(box.key)}
+				/>
+			)
+		})
+
+	return (
+		<div className="h-screen w-screen bg-background overflow-hidden">
+			<PriceGraph adapter={adapter} maxPoints={100} renderBoxes={renderBoxes} />
+		</div>
+	)
 }

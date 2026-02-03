@@ -9,4 +9,4 @@ export { useBinancePrice, usePythPrice } from './adapters'
 export type { PriceAdapter } from './adapters'
 
 // Types
-export type { PricePoint } from './lib'
+export type { PricePoint, BoxTimeState, BoxData } from './lib'
