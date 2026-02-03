@@ -4,15 +4,28 @@ import {
 	type BoxData,
 	PriceGraph,
 	useBinancePrice,
+	useBoxEvents,
 } from "../../registry/price-graph";
 
 export const Route = createFileRoute("/")({
 	component: App,
 });
 
-const getBoxFill = (box: BoxData, isSelected: boolean, isHovered: boolean) => {
-	if (isSelected) return "rgba(59, 130, 246, 0.3)";
+const PRICE_STEP = 200;
+
+const getBoxFill = (
+	box: BoxData,
+	isSelected: boolean,
+	isHovered: boolean,
+	isActivated: boolean,
+) => {
+	if (isSelected) {
+		if (isActivated) return "rgba(34, 197, 94, 0.25)"; // green for activated
+		if (box.timeState === "past") return "rgba(255, 0, 0, 0.2)"; // red for selected past
+		return "rgba(59, 130, 246, 0.3)";
+	}
 	if (isHovered) return "rgba(59, 130, 246, 0.15)";
+	// if (isActivated) return "rgba(34, 197, 94, 0.25)"; // green for activated
 	if (box.timeState === "past") return "rgba(128, 128, 128, 0.2)";
 	return "transparent";
 };
@@ -28,6 +41,12 @@ function App() {
 	const [selectedBoxes, setSelectedBoxes] = useState<Set<string>>(new Set());
 	const [hoveredBox, setHoveredBox] = useState<string | null>(null);
 
+	const { processBoxes, activatedBoxes } = useBoxEvents({
+		priceStep: PRICE_STEP,
+		onBoxActivated: (box) => console.log("activated:", box.key),
+		onBoxExpired: (box) => console.log("expired:", box.key),
+	});
+
 	const toggleBox = (key: string) => {
 		setSelectedBoxes((prev) => {
 			const next = new Set(prev);
@@ -37,10 +56,13 @@ function App() {
 		console.log("Clicked box:", key);
 	};
 
-	const renderBoxes = (boxes: BoxData[]) =>
-		boxes.map((box) => {
+	const renderBoxes = (boxes: BoxData[]) => {
+		processBoxes(boxes, adapter.priceData?.price ?? 0);
+
+		return boxes.map((box) => {
 			const isSelected = selectedBoxes.has(box.key);
 			const isHovered = hoveredBox === box.key;
+			const isActivated = activatedBoxes.has(box.key);
 			const text = getBoxText(box, isSelected, isHovered);
 
 			return (
@@ -50,7 +72,7 @@ function App() {
 						y={box.y}
 						width={box.width}
 						height={box.height}
-						fill={getBoxFill(box, isSelected, isHovered)}
+						fill={getBoxFill(box, isSelected, isHovered, isActivated)}
 						stroke="transparent"
 						style={{ cursor: "pointer" }}
 						onMouseEnter={() => setHoveredBox(box.key)}
@@ -73,6 +95,7 @@ function App() {
 				</g>
 			);
 		});
+	};
 
 	return (
 		<div className="h-screen w-screen bg-background overflow-hidden">
