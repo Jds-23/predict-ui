@@ -17,6 +17,12 @@ const getBoxFill = (box: BoxData, isSelected: boolean, isHovered: boolean) => {
 	return "transparent";
 };
 
+const getBoxText = (_box: BoxData, isSelected: boolean, isHovered: boolean) => {
+	if (isSelected) return "✓";
+	if (isHovered) return "?";
+	return null;
+};
+
 function App() {
 	const adapter = useBinancePrice({ symbol: "btcusdt", throttleMs: 250 });
 	const [selectedBoxes, setSelectedBoxes] = useState<Set<string>>(new Set());
@@ -35,21 +41,36 @@ function App() {
 		boxes.map((box) => {
 			const isSelected = selectedBoxes.has(box.key);
 			const isHovered = hoveredBox === box.key;
+			const text = getBoxText(box, isSelected, isHovered);
 
 			return (
-				<rect
-					key={box.key}
-					x={box.x}
-					y={box.y}
-					width={box.width}
-					height={box.height}
-					fill={getBoxFill(box, isSelected, isHovered)}
-					stroke="transparent"
-					style={{ cursor: "pointer" }}
-					onMouseEnter={() => setHoveredBox(box.key)}
-					onMouseLeave={() => setHoveredBox(null)}
-					onClick={() => toggleBox(box.key)}
-				/>
+				<g key={box.key}>
+					<rect
+						x={box.x}
+						y={box.y}
+						width={box.width}
+						height={box.height}
+						fill={getBoxFill(box, isSelected, isHovered)}
+						stroke="transparent"
+						style={{ cursor: "pointer" }}
+						onMouseEnter={() => setHoveredBox(box.key)}
+						onMouseLeave={() => setHoveredBox(null)}
+						onClick={() => toggleBox(box.key)}
+					/>
+					{text && (
+						<text
+							x={box.x + box.width / 2}
+							y={box.y + box.height / 2}
+							textAnchor="middle"
+							dominantBaseline="middle"
+							fill="white"
+							fontSize={12}
+							pointerEvents="none"
+						>
+							{text}
+						</text>
+					)}
+				</g>
 			);
 		});
 
