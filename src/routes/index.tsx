@@ -25,7 +25,6 @@ const getBoxFill = (
 		return "rgba(59, 130, 246, 0.3)";
 	}
 	if (isHovered) return "rgba(59, 130, 246, 0.15)";
-	// if (isActivated) return "rgba(34, 197, 94, 0.25)"; // green for activated
 	if (box.timeState === "past") return "rgba(128, 128, 128, 0.2)";
 	return "transparent";
 };
@@ -66,33 +65,27 @@ function App() {
 			const text = getBoxText(box, isSelected, isHovered);
 
 			return (
-				<g key={box.key}>
-					<rect
-						x={box.x}
-						y={box.y}
-						width={box.width}
-						height={box.height}
-						fill={getBoxFill(box, isSelected, isHovered, isActivated)}
-						stroke="transparent"
-						style={{ cursor: "pointer" }}
-						onMouseEnter={() => setHoveredBox(box.key)}
-						onMouseLeave={() => setHoveredBox(null)}
-						onClick={() => toggleBox(box.key)}
-					/>
+				<button
+					type="button"
+					key={box.key}
+					className="absolute pointer-events-auto flex items-center justify-center cursor-pointer border-none"
+					style={{
+						left: box.x,
+						top: box.y,
+						width: box.width,
+						height: box.height,
+						backgroundColor: getBoxFill(box, isSelected, isHovered, isActivated),
+					}}
+					onMouseEnter={() => setHoveredBox(box.key)}
+					onMouseLeave={() => setHoveredBox(null)}
+					onClick={() => toggleBox(box.key)}
+				>
 					{text && (
-						<text
-							x={box.x + box.width / 2}
-							y={box.y + box.height / 2}
-							textAnchor="middle"
-							dominantBaseline="middle"
-							fill="white"
-							fontSize={12}
-							pointerEvents="none"
-						>
+						<span className="text-white text-sm select-none pointer-events-none">
 							{text}
-						</text>
+						</span>
 					)}
-				</g>
+				</button>
 			);
 		});
 	};

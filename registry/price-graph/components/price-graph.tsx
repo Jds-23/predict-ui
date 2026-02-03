@@ -3,11 +3,11 @@ import type { PriceAdapter } from '../adapters/types'
 import type { PricePoint, BoxData } from '../lib/types'
 import { usePriceBuffer } from '../hooks/use-price-buffer'
 import { useAnimationTime } from '../hooks/use-animation-time'
+import { useGridBoxes } from '../hooks/use-grid-boxes'
 import { PriceLine } from './price-line'
 import { PriceHead } from './price-head'
 import { TimeGrid } from './time-grid'
 import { PriceGrid } from './price-grid'
-import { GridBoxes } from './grid-boxes'
 
 interface PriceGraphProps {
   adapter?: PriceAdapter
@@ -21,19 +21,6 @@ interface PriceGraphProps {
   renderBoxes?: (boxes: BoxData[]) => ReactNode
 }
 
-const defaultRenderBoxes = (boxes: BoxData[]): ReactNode =>
-  boxes.map((box) => (
-    <rect
-      key={box.key}
-      x={box.x}
-      y={box.y}
-      width={box.width}
-      height={box.height}
-      fill="transparent"
-      stroke="transparent"
-    />
-  ))
-
 export function PriceGraph({
   adapter,
   priceData: manualPriceData,
@@ -43,7 +30,7 @@ export function PriceGraph({
   timeWindowSeconds = 25,
   priceStep = 200,
   smoothingMs = 500,
-  renderBoxes = defaultRenderBoxes,
+  renderBoxes,
 }: PriceGraphProps) {
   // Use adapter if provided, otherwise use manual props
   const priceData = adapter?.priceData ?? manualPriceData ?? null
@@ -63,6 +50,7 @@ export function PriceGraph({
 
   const centerX = dimensions.width / 2
   const paddingY = 0.05 * dimensions.height
+  const visiblePriceRange = priceStep * 10
 
   // Update dimensions on resize
   useEffect(() => {
@@ -105,15 +93,6 @@ export function PriceGraph({
     return smoothedPriceRef.current
   }, [points, smoothingMs, currentTime])
 
-  // Visible price range based on step count (show ~5 steps above/below center)
-  const visiblePriceRange = priceStep * 10
-
-  // Filter points to only those in visible time window
-  const visiblePoints = useMemo(() => {
-    const oldestVisibleTime = currentTime - timeWindowMs / 2
-    return points.filter((p) => p.time >= oldestVisibleTime)
-  }, [points, currentTime, timeWindowMs])
-
   // Calculate head Y position relative to smoothed center
   const headY = useMemo(() => {
     if (points.length === 0 || smoothedCenterPrice === null) return dimensions.height / 2
@@ -125,13 +104,33 @@ export function PriceGraph({
     return centerY + (smoothedCenterPrice - lastPoint.price) * pixelsPerDollar
   }, [points, smoothedCenterPrice, dimensions.height, paddingY, visiblePriceRange])
 
+  // Filter points to only those in visible time window
+  const visiblePoints = useMemo(() => {
+    const oldestVisibleTime = currentTime - timeWindowMs / 2
+    return points.filter((p) => p.time >= oldestVisibleTime)
+  }, [points, currentTime, timeWindowMs])
+
+  // Calculate grid boxes
+  const boxes = useGridBoxes({
+    width: dimensions.width,
+    height: dimensions.height,
+    centerPrice: smoothedCenterPrice ?? 0,
+    priceStep,
+    visiblePriceRange,
+    paddingY,
+    currentTime,
+    pixelsPerMs,
+    timeIntervalMs: 5000,
+    timeWindowMs,
+  })
+
   return (
     <div
       ref={containerRef}
-      className={`relative w-full h-full min-h-[200px] ${className}`}
+      className={`relative w-full h-full min-h-[200px] overflow-hidden ${className}`}
     >
       {/* Connection status indicator */}
-      <div className="absolute top-2 right-2 flex items-center gap-2 text-xs text-muted-foreground">
+      <div className="absolute top-2 right-2 flex items-center gap-2 text-xs text-muted-foreground z-10">
         <span
           className={`w-2 h-2 rounded-full ${
             isConnected ? 'bg-green-500' : 'bg-red-500'
@@ -147,24 +146,6 @@ export function PriceGraph({
         preserveAspectRatio="none"
         className="overflow-visible"
       >
-        {/* Clickable grid boxes - render first so lines appear on top */}
-        {smoothedCenterPrice !== null && (
-          <GridBoxes
-            width={dimensions.width}
-            height={dimensions.height}
-            centerPrice={smoothedCenterPrice}
-            priceStep={priceStep}
-            visiblePriceRange={visiblePriceRange}
-            paddingY={paddingY}
-            currentTime={currentTime}
-            pixelsPerMs={pixelsPerMs}
-            timeIntervalMs={5000}
-            timeWindowMs={timeWindowMs}
-          >
-            {renderBoxes}
-          </GridBoxes>
-        )}
-
         {/* Price grid - moves with smoothed center price */}
         {smoothedCenterPrice !== null && (
           <PriceGrid
@@ -204,6 +185,13 @@ export function PriceGraph({
         {/* Head dot (current price) - always at center X */}
         {points.length > 0 && <PriceHead x={centerX} y={headY} />}
       </svg>
+
+      {/* HTML box overlay */}
+      {renderBoxes && smoothedCenterPrice !== null && (
+        <div className="absolute inset-0 pointer-events-none">
+          {renderBoxes(boxes)}
+        </div>
+      )}
     </div>
   )
 }
