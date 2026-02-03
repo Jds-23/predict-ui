@@ -5,7 +5,6 @@ interface PriceGridProps {
   priceStep: number
   visiblePriceRange: number
   paddingY: number
-  onLineClick?: (price: number) => void
 }
 
 function formatPrice(price: number): string {
@@ -22,7 +21,6 @@ export function PriceGrid({
   priceStep,
   visiblePriceRange,
   paddingY,
-  onLineClick,
 }: PriceGridProps) {
   const centerY = height / 2
   const pixelsPerDollar = (height - 2 * paddingY) / visiblePriceRange
@@ -49,20 +47,7 @@ export function PriceGrid({
   return (
     <g className="price-grid">
       {lines.map(({ y, price }) => (
-        <g
-          key={price}
-          onClick={() => onLineClick?.(price)}
-          style={{ cursor: onLineClick ? 'pointer' : 'default' }}
-        >
-          {/* Invisible wider hit area for easier clicking */}
-          <line
-            x1={0}
-            y1={y}
-            x2={width}
-            y2={y}
-            stroke="transparent"
-            strokeWidth={16}
-          />
+        <g key={price}>
           <line
             x1={0}
             y1={y}

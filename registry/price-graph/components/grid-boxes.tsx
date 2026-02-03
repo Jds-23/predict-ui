@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo } from "react"
 
 interface GridBoxesProps {
   width: number
@@ -11,7 +11,8 @@ interface GridBoxesProps {
   pixelsPerMs: number
   timeIntervalMs: number
   timeWindowMs: number
-  onBoxSelect?: (boxes: Set<string>) => void
+  selectedBoxes?: Set<string>
+  onBoxClick?: (boxKey: string) => void
 }
 
 interface BoxKey {
@@ -34,10 +35,10 @@ export function GridBoxes({
   pixelsPerMs,
   timeIntervalMs,
   timeWindowMs,
-  onBoxSelect,
+  selectedBoxes,
+  onBoxClick,
 }: GridBoxesProps) {
   const [hoveredBox, setHoveredBox] = useState<string | null>(null)
-  const [selectedBoxes, setSelectedBoxes] = useState<Set<string>>(new Set())
 
   const centerY = height / 2
   const centerX = width / 2
@@ -114,24 +115,11 @@ export function GridBoxes({
     return result
   }, [priceLines, timeLines, width, height])
 
-  const handleClick = (key: string) => {
-    setSelectedBoxes((prev) => {
-      const next = new Set(prev)
-      if (next.has(key)) {
-        next.delete(key)
-      } else {
-        next.add(key)
-      }
-      onBoxSelect?.(next)
-      return next
-    })
-  }
-
   return (
     <g className="grid-boxes">
       {boxes.map((box) => {
         const isHovered = hoveredBox === box.key
-        const isSelected = selectedBoxes.has(box.key)
+        const isSelected = selectedBoxes?.has(box.key)
 
         return (
           <rect
@@ -142,16 +130,16 @@ export function GridBoxes({
             height={box.height}
             fill={
               isSelected
-                ? 'rgba(59, 130, 246, 0.3)'
+                ? "rgba(59, 130, 246, 0.3)"
                 : isHovered
-                  ? 'rgba(59, 130, 246, 0.15)'
-                  : 'transparent'
+                  ? "rgba(59, 130, 246, 0.15)"
+                  : "transparent"
             }
             stroke="transparent"
-            style={{ cursor: 'pointer' }}
+            style={{ cursor: "pointer" }}
             onMouseEnter={() => setHoveredBox(box.key)}
             onMouseLeave={() => setHoveredBox(null)}
-            onClick={() => handleClick(box.key)}
+            onClick={() => onBoxClick?.(box.key)}
           />
         )
       })}

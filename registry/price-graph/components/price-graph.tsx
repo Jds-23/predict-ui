@@ -18,8 +18,8 @@ interface PriceGraphProps {
   timeWindowSeconds?: number
   priceStep?: number
   smoothingMs?: number
-  onPriceLineClick?: (price: number) => void
-  onBoxSelect?: (boxes: Set<string>) => void
+  selectedBoxes?: Set<string>
+  onBoxClick?: (boxKey: string) => void
 }
 
 export function PriceGraph({
@@ -27,12 +27,12 @@ export function PriceGraph({
   priceData: manualPriceData,
   isConnected: manualIsConnected,
   maxPoints = 100,
-  className = '',
+  className = "",
   timeWindowSeconds = 25,
   priceStep = 200,
   smoothingMs = 500,
-  onPriceLineClick,
-  onBoxSelect,
+  selectedBoxes,
+  onBoxClick,
 }: PriceGraphProps) {
   // Use adapter if provided, otherwise use manual props
   const priceData = adapter?.priceData ?? manualPriceData ?? null
@@ -149,7 +149,8 @@ export function PriceGraph({
             pixelsPerMs={pixelsPerMs}
             timeIntervalMs={5000}
             timeWindowMs={timeWindowMs}
-            onBoxSelect={onBoxSelect}
+            selectedBoxes={selectedBoxes}
+            onBoxClick={onBoxClick}
           />
         )}
 
@@ -162,7 +163,6 @@ export function PriceGraph({
             priceStep={priceStep}
             visiblePriceRange={visiblePriceRange}
             paddingY={paddingY}
-            onLineClick={onPriceLineClick}
           />
         )}
 

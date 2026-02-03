@@ -1,20 +1,23 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { PriceGraph } from '../components/PriceGraph'
-import { useBinancePrice } from '../../registry/price-graph'
+import { useState } from "react"
+import { createFileRoute } from "@tanstack/react-router"
+import { PriceGraph } from "../components/PriceGraph"
+import { useBinancePrice } from "../../registry/price-graph"
 
-export const Route = createFileRoute('/')({
+export const Route = createFileRoute("/")({
   component: App,
 })
 
 function App() {
-  const adapter = useBinancePrice({ symbol: 'btcusdt', throttleMs: 250 })
+  const adapter = useBinancePrice({ symbol: "btcusdt", throttleMs: 250 })
+  const [selectedBoxes, setSelectedBoxes] = useState<Set<string>>(new Set())
 
-  const handlePriceClick = (price: number) => {
-    console.log('Clicked price:', price)
-  }
-
-  const handleBoxSelect = (boxes: Set<string>) => {
-    console.log('Selected boxes:', [...boxes])
+  const handleBoxClick = (boxKey: string) => {
+    setSelectedBoxes((prev) => {
+      const next = new Set(prev)
+      next.has(boxKey) ? next.delete(boxKey) : next.add(boxKey)
+      return next
+    })
+    console.log("Clicked box:", boxKey)
   }
 
   return (
@@ -22,8 +25,8 @@ function App() {
       <PriceGraph
         adapter={adapter}
         maxPoints={100}
-        onPriceLineClick={handlePriceClick}
-        onBoxSelect={handleBoxSelect}
+        selectedBoxes={selectedBoxes}
+        onBoxClick={handleBoxClick}
       />
     </div>
   )
