@@ -79,6 +79,7 @@ function App() {
 					onMouseEnter={() => setHoveredBox(box.key)}
 					onMouseLeave={() => setHoveredBox(null)}
 					onClick={() => toggleBox(box.key)}
+					disabled={box.timeState === "past"}
 				>
 					{text && (
 						<span className="text-white text-sm select-none pointer-events-none">
