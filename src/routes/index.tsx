@@ -6,12 +6,19 @@ import {
 	useBinancePrice,
 	useBoxEvents,
 } from "../../registry/price-graph";
+import { BottomBar } from "@/components/BottomBar";
 
 export const Route = createFileRoute("/")({
 	component: App,
 });
 
 const PRICE_STEP = 50;
+
+const TRADING_PAIRS = [
+	{ value: "btcusdt", label: "BTC/USDT" },
+	{ value: "ethusdt", label: "ETH/USDT" },
+	{ value: "solusdt", label: "SOL/USDT" },
+];
 
 const getBoxFill = (
 	box: BoxData,
@@ -36,7 +43,10 @@ const getBoxText = (_box: BoxData, isSelected: boolean, isHovered: boolean) => {
 };
 
 function App() {
-	const adapter = useBinancePrice({ symbol: "btcusdt", throttleMs: 250 });
+	const [selectedPair, setSelectedPair] = useState("btcusdt");
+	const [amount, setAmount] = useState("");
+
+	const adapter = useBinancePrice({ symbol: selectedPair, throttleMs: 250 });
 	const [selectedBoxes, setSelectedBoxes] = useState<Set<string>>(new Set());
 	const [hoveredBox, setHoveredBox] = useState<string | null>(null);
 
@@ -94,6 +104,14 @@ function App() {
 	return (
 		<div className="h-screen w-screen bg-background overflow-hidden">
 			<PriceGraph adapter={adapter} maxPoints={100} renderBoxes={renderBoxes} />
+			<BottomBar
+				tradingPairs={TRADING_PAIRS}
+				selectedPair={selectedPair}
+				onPairChange={setSelectedPair}
+				amount={amount}
+				onAmountChange={setAmount}
+				walletBalance={100}
+			/>
 		</div>
 	);
 }

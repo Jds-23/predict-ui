@@ -5,10 +5,17 @@ import {
 	PriceGraph,
 	usePythPrice,
 } from "../../registry/price-graph";
+import { BottomBar } from "@/components/BottomBar";
 
 export const Route = createFileRoute("/pyth")({
 	component: PythPage,
 });
+
+const TRADING_PAIRS = [
+	{ value: "Crypto.BTC/USD", label: "BTC/USD" },
+	{ value: "Crypto.ETH/USD", label: "ETH/USD" },
+	{ value: "Crypto.SOL/USD", label: "SOL/USD" },
+];
 
 const getBoxFill = (box: BoxData, isSelected: boolean, isHovered: boolean) => {
 	if (isSelected) return "rgba(59, 130, 246, 0.3)";
@@ -24,7 +31,10 @@ const getBoxText = (_box: BoxData, isSelected: boolean, isHovered: boolean) => {
 };
 
 function PythPage() {
-	const adapter = usePythPrice({ symbol: "Crypto.BTC/USD", throttleMs: 250 });
+	const [selectedPair, setSelectedPair] = useState("Crypto.BTC/USD");
+	const [amount, setAmount] = useState("");
+
+	const adapter = usePythPrice({ symbol: selectedPair, throttleMs: 250 });
 	const [selectedBoxes, setSelectedBoxes] = useState<Set<string>>(new Set());
 	const [hoveredBox, setHoveredBox] = useState<string | null>(null);
 
@@ -77,6 +87,14 @@ function PythPage() {
 	return (
 		<div className="h-screen w-screen bg-background overflow-hidden">
 			<PriceGraph adapter={adapter} maxPoints={100} renderBoxes={renderBoxes} />
+			<BottomBar
+				tradingPairs={TRADING_PAIRS}
+				selectedPair={selectedPair}
+				onPairChange={setSelectedPair}
+				amount={amount}
+				onAmountChange={setAmount}
+				walletBalance={100}
+			/>
 		</div>
 	);
 }
