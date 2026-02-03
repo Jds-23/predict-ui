@@ -28,6 +28,11 @@ const TRADING_PAIRS = [
 	{ value: "solusdt", label: "SOL/USDT" },
 ];
 
+const calcMultiplier = (priceIndex: number, currentPriceIndex: number) => {
+	const distance = Math.abs(priceIndex - currentPriceIndex);
+	return 1.5 + distance * 0.5;
+};
+
 const getBoxFill = (
 	box: BoxData,
 	stake: Stake | undefined,
@@ -97,6 +102,9 @@ function App() {
 		return boxes.map((box) => {
 			const stake = stakesMap.get(box.key);
 			const isHovered = hoveredBox === box.key;
+			const [priceIndexStr] = box.key.split(":");
+			const priceIndex = Number.parseInt(priceIndexStr, 10);
+			const multiplier = stake?.multiplier ?? calcMultiplier(priceIndex, currentPriceIndex);
 
 			return (
 				<button
@@ -118,6 +126,11 @@ function App() {
 					{stake && (
 						<span className="text-lg font-bold text-white select-none pointer-events-none">
 							${stake.amount}
+						</span>
+					)}
+					{box.timeState !== "past" && (
+						<span className="absolute bottom-1 left-1 text-xs text-white/50 select-none pointer-events-none">
+							{multiplier.toFixed(1)}x
 						</span>
 					)}
 				</button>

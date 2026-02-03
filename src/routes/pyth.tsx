@@ -28,6 +28,11 @@ const TRADING_PAIRS = [
 	{ value: "Crypto.SOL/USD", label: "SOL/USD" },
 ];
 
+const calcMultiplier = (priceIndex: number, currentPriceIndex: number) => {
+	const distance = Math.abs(priceIndex - currentPriceIndex);
+	return 1.5 + distance * 0.5;
+};
+
 const getBoxFill = (
 	box: BoxData,
 	stake: Stake | undefined,
@@ -97,6 +102,9 @@ function PythPage() {
 		return boxes.map((box) => {
 			const stake = stakesMap.get(box.key);
 			const isHovered = hoveredBox === box.key;
+			const [priceIndexStr] = box.key.split(":");
+			const priceIndex = Number.parseInt(priceIndexStr, 10);
+			const multiplier = stake?.multiplier ?? calcMultiplier(priceIndex, currentPriceIndex);
 
 			return (
 				// biome-ignore lint/a11y/useSemanticElements: SVG elements need click handlers
@@ -126,6 +134,17 @@ function PythPage() {
 							pointerEvents="none"
 						>
 							${stake.amount}
+						</text>
+					)}
+					{box.timeState !== "past" && (
+						<text
+							x={box.x + 4}
+							y={box.y + box.height - 4}
+							fill="rgba(255,255,255,0.5)"
+							fontSize={10}
+							pointerEvents="none"
+						>
+							{multiplier.toFixed(1)}x
 						</text>
 					)}
 				</g>
