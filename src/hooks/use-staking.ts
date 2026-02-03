@@ -67,7 +67,21 @@ export function useSettleStakeMutation() {
 	return useMutation({
 		mutationFn: ({ boxKey, won }: SettleParams) => {
 			const stake = stakeDb.settle(boxKey, won);
-			if (stake && won) {
+			return Promise.resolve(stake);
+		},
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: ["stakes"] });
+		},
+	});
+}
+
+export function useFinishSettleMutation() {
+	const qc = useQueryClient();
+
+	return useMutation({
+		mutationFn: (boxKey: string) => {
+			const stake = stakeDb.finishSettle(boxKey);
+			if (stake && stake.status === "won") {
 				walletDb.add(stake.amount * stake.multiplier);
 			}
 			return Promise.resolve(stake);

@@ -3,7 +3,7 @@ export interface Stake {
 	boxKey: string;
 	amount: number;
 	multiplier: number;
-	status: "pending" | "won" | "lost";
+	status: "pending" | "settling-won" | "settling-lost" | "won" | "lost";
 }
 
 const stakes = new Map<string, Stake>();
@@ -38,8 +38,22 @@ export const stakeDb = {
 	settle(boxKey: string, won: boolean): Stake | undefined {
 		const stake = stakes.get(boxKey);
 		if (!stake || stake.status !== "pending") return undefined;
-		stake.status = won ? "won" : "lost";
+		stake.status = won ? "settling-won" : "settling-lost";
 		return stake;
+	},
+
+	finishSettle(boxKey: string): Stake | undefined {
+		const stake = stakes.get(boxKey);
+		if (!stake) return undefined;
+		if (stake.status === "settling-won") {
+			stake.status = "won";
+			return stake;
+		}
+		if (stake.status === "settling-lost") {
+			stake.status = "lost";
+			return stake;
+		}
+		return undefined;
 	},
 
 	reset(): void {

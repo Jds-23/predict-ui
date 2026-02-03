@@ -1,8 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { AnimatePresence } from "framer-motion";
 import { BottomBar } from "@/components/BottomBar";
+import { StakeBox } from "@/components/StakeBox";
 import {
 	type Stake,
+	useFinishSettleMutation,
 	useResetMutation,
 	useSettleStakeMutation,
 	useStakeMutation,
@@ -39,8 +42,10 @@ const getBoxFill = (
 	isHovered: boolean,
 ) => {
 	if (stake) {
-		if (stake.status === "won") return "rgba(34, 197, 94, 0.4)";
-		if (stake.status === "lost") return "rgba(239, 68, 68, 0.3)";
+		if (stake.status === "won" || stake.status === "settling-won")
+			return "rgba(34, 197, 94, 0.4)";
+		if (stake.status === "lost" || stake.status === "settling-lost")
+			return "rgba(239, 68, 68, 0.3)";
 		return "rgba(59, 130, 246, 0.4)"; // pending
 	}
 	if (isHovered && box.timeState !== "past") return "rgba(59, 130, 246, 0.15)";
@@ -61,6 +66,7 @@ function App() {
 
 	const stakeMutation = useStakeMutation();
 	const settleMutation = useSettleStakeMutation();
+	const finishSettleMutation = useFinishSettleMutation();
 	const resetMutation = useResetMutation();
 
 	const { processBoxes } = useBoxEvents({
@@ -99,43 +105,70 @@ function App() {
 	const renderBoxes = (boxes: BoxData[]) => {
 		processBoxes(boxes, currentPrice);
 
-		return boxes.map((box) => {
-			const stake = stakesMap.get(box.key);
-			const isHovered = hoveredBox === box.key;
-			const [priceIndexStr] = box.key.split(":");
-			const priceIndex = Number.parseInt(priceIndexStr, 10);
-			const multiplier = stake?.multiplier ?? calcMultiplier(priceIndex, currentPriceIndex);
+		return (
+			<AnimatePresence>
+				{boxes.map((box) => {
+					const stake = stakesMap.get(box.key);
+					const isHovered = hoveredBox === box.key;
+					const [priceIndexStr] = box.key.split(":");
+					const priceIndex = Number.parseInt(priceIndexStr, 10);
+					const multiplier =
+						stake?.multiplier ?? calcMultiplier(priceIndex, currentPriceIndex);
 
-			return (
-				<button
-					type="button"
-					key={box.key}
-					className="absolute pointer-events-auto flex items-center justify-center cursor-pointer border-none"
-					style={{
-						left: box.x,
-						top: box.y,
-						width: box.width,
-						height: box.height,
-						backgroundColor: getBoxFill(box, stake, isHovered),
-					}}
-					onMouseEnter={() => setHoveredBox(box.key)}
-					onMouseLeave={() => setHoveredBox(null)}
-					onClick={() => handleBoxClick(box)}
-					disabled={box.timeState === "past"}
-				>
-					{stake && (
-						<span className="text-lg font-bold text-white select-none pointer-events-none">
-							${stake.amount}
-						</span>
-					)}
-					{box.timeState !== "past" && (
-						<span className="absolute bottom-1 left-1 text-sm text-blue-400 select-none pointer-events-none">
-							{multiplier.toFixed(1)}x
-						</span>
-					)}
-				</button>
-			);
-		});
+					const isSettling =
+						stake?.status === "settling-won" ||
+						stake?.status === "settling-lost";
+
+					if (isSettling && stake) {
+						return (
+							<StakeBox
+								key={box.key}
+								box={box}
+								stake={stake}
+								onAnimationComplete={() =>
+									finishSettleMutation.mutate(box.key)
+								}
+							/>
+						);
+					}
+
+					// Hide fully settled stakes
+					if (stake?.status === "won" || stake?.status === "lost") {
+						return null;
+					}
+
+					return (
+						<button
+							type="button"
+							key={box.key}
+							className="absolute pointer-events-auto flex items-center justify-center cursor-pointer border-none"
+							style={{
+								left: box.x,
+								top: box.y,
+								width: box.width,
+								height: box.height,
+								backgroundColor: getBoxFill(box, stake, isHovered),
+							}}
+							onMouseEnter={() => setHoveredBox(box.key)}
+							onMouseLeave={() => setHoveredBox(null)}
+							onClick={() => handleBoxClick(box)}
+							disabled={box.timeState === "past"}
+						>
+							{stake && (
+								<span className="text-lg font-bold text-white select-none pointer-events-none">
+									${stake.amount}
+								</span>
+							)}
+							{box.timeState !== "past" && (
+								<span className="absolute bottom-1 left-1 text-sm text-blue-400 select-none pointer-events-none">
+									{multiplier.toFixed(1)}x
+								</span>
+							)}
+						</button>
+					);
+				})}
+			</AnimatePresence>
+		);
 	};
 
 	return (
