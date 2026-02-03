@@ -129,7 +129,7 @@ function App() {
 						</span>
 					)}
 					{box.timeState !== "past" && (
-						<span className="absolute bottom-1 left-1 text-xs text-white/50 select-none pointer-events-none">
+						<span className="absolute bottom-1 left-1 text-sm text-blue-400 select-none pointer-events-none">
 							{multiplier.toFixed(1)}x
 						</span>
 					)}
