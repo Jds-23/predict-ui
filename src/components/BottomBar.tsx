@@ -1,4 +1,4 @@
-import { ChevronUp, RotateCcw, Wallet } from "lucide-react";
+import { ChevronUp, RotateCcw, Volume2, VolumeX, Wallet } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 interface TradingPair {
@@ -14,6 +14,8 @@ interface BottomBarProps {
 	onAmountChange: (amount: string) => void;
 	walletBalance: number;
 	onReset?: () => void;
+	isMuted?: boolean;
+	onToggleMute?: () => void;
 }
 
 export function BottomBar({
@@ -24,6 +26,8 @@ export function BottomBar({
 	onAmountChange,
 	walletBalance,
 	onReset,
+	isMuted,
+	onToggleMute,
 }: BottomBarProps) {
 	const [dropdownOpen, setDropdownOpen] = useState(false);
 	const dropdownRef = useRef<HTMLDivElement>(null);
@@ -119,6 +123,18 @@ export function BottomBar({
 					title="Reset wallet & stakes"
 				>
 					<RotateCcw size={14} />
+				</button>
+			)}
+
+			{/* Mute Toggle */}
+			{onToggleMute && (
+				<button
+					type="button"
+					onClick={onToggleMute}
+					className="flex items-center gap-1 px-2 py-1.5 bg-gray-700 hover:bg-gray-600 rounded transition-colors text-sm"
+					title={isMuted ? "Unmute" : "Mute"}
+				>
+					{isMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
 				</button>
 			)}
 		</div>

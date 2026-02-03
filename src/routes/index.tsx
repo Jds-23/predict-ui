@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { BottomBar } from "@/components/BottomBar";
 import { StakeBox } from "@/components/StakeBox";
+import { useGameAudio } from "@/hooks/use-game-audio";
 import {
 	type Stake,
 	useFinishSettleMutation,
@@ -60,6 +61,19 @@ function App() {
 	const adapter = useBinancePrice({ symbol: selectedPair, throttleMs: 250 });
 	const [hoveredBox, setHoveredBox] = useState<string | null>(null);
 
+	const { playBet, playWin, playLose, startBgMusic, isMuted, toggleMute } =
+		useGameAudio();
+
+	// Start bg music on first user interaction
+	useEffect(() => {
+		const handleInteraction = () => {
+			startBgMusic();
+			window.removeEventListener("click", handleInteraction);
+		};
+		window.addEventListener("click", handleInteraction);
+		return () => window.removeEventListener("click", handleInteraction);
+	}, [startBgMusic]);
+
 	const wallet = useWallet();
 	const { data: stakes = [] } = useStakes();
 	const stakesMap = new Map(stakes.map((s) => [s.boxKey, s]));
@@ -72,10 +86,14 @@ function App() {
 	const { processBoxes } = useBoxEvents({
 		priceStep: PRICE_STEP,
 		onBoxActivated: (box) => {
+			if (!stakesMap.has(box.key)) return;
 			settleMutation.mutate({ boxKey: box.key, won: true });
+			playWin();
 		},
 		onBoxExpired: (box) => {
+			if (!stakesMap.has(box.key)) return;
 			settleMutation.mutate({ boxKey: box.key, won: false });
+			playLose();
 		},
 	});
 
@@ -94,12 +112,15 @@ function App() {
 		const [priceIndexStr] = box.key.split(":");
 		const priceIndex = Number.parseInt(priceIndexStr, 10);
 
-		stakeMutation.mutate({
-			boxKey: box.key,
-			amount: stakeAmount,
-			currentPriceIndex:
-				priceIndex === currentPriceIndex ? 0 : currentPriceIndex,
-		});
+		stakeMutation.mutate(
+			{
+				boxKey: box.key,
+				amount: stakeAmount,
+				currentPriceIndex:
+					priceIndex === currentPriceIndex ? 0 : currentPriceIndex,
+			},
+			{ onSuccess: () => playBet() },
+		);
 	};
 
 	const renderBoxes = (boxes: BoxData[]) => {
@@ -182,6 +203,8 @@ function App() {
 				onAmountChange={setAmount}
 				walletBalance={wallet.data ?? 100}
 				onReset={() => resetMutation.mutate()}
+				isMuted={isMuted}
+				onToggleMute={toggleMute}
 			/>
 		</div>
 	);
