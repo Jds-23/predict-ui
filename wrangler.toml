@@ -4,6 +4,6 @@ compatibility_date = "2024-01-01"
 compatibility_flags = ["nodejs_compat"]
 
 [[d1_databases]]
-binding = "DB"
+binding = "predict_db"
 database_name = "predict-db"
-database_id = "local"
+database_id = "15ad0c5a-9e0e-4033-978f-1da32456e4e3"
