@@ -6,6 +6,11 @@ import tailwindcss from "@tailwindcss/vite"
 
 export default defineConfig({
   server: { port: 3000 },
+  esbuild: {
+    logOverride: {
+      "ignored-bare-import": "silent",
+    },
+  },
   plugins: [
     tsConfigPaths(),
     tanstackStart(),
