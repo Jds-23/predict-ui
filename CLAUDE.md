@@ -20,7 +20,9 @@ bunx shadcn@latest add <component>
 
 ## Architecture
 
-**Stack:** React 19, TanStack Router (file-based), TanStack Query, Tailwind v4, Vite, Biome
+**Stack:** React 19, TanStack Start (SSR), TanStack Router (file-based), TanStack Query, Tailwind v4, Vite, Biome
+
+**Database:** Cloudflare D1 (SQLite at edge) - only available in production
 
 **Path alias:** `@/*` → `./src/*`
 
@@ -51,6 +53,17 @@ CSS vars required: `--chart-1`, `--muted-foreground`
 ### Routing
 
 File-based in `src/routes/`. Layout in `__root.tsx`. TanStack Router auto-generates `routeTree.gen.ts`.
+
+### Server Functions
+
+Server functions in `src/server/staking.ts` use `createServerFn` with D1 middleware.
+- Local dev: Falls back to client-side in-memory state
+- Production: Uses D1 database for persistence
+
+Key files:
+- `src/server.ts` - Server entry point with Cloudflare context
+- `src/db/client.ts` - D1 database accessor
+- `src/db/schema.sql` - Database schema
 
 ## Code Style
 
