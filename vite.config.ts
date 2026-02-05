@@ -6,6 +6,10 @@ import tailwindcss from "@tailwindcss/vite"
 
 export default defineConfig({
   server: { port: 3000 },
+  define: {
+    "process.env.TSS_PRERENDERING": JSON.stringify(""),
+    "process.env.TSS_SHELL": JSON.stringify(""),
+  },
   esbuild: {
     logOverride: {
       "ignored-bare-import": "silent",
